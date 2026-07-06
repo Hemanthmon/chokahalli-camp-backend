@@ -1,0 +1,24 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const healthRoutes_1 = __importDefault(require("./healthRoutes"));
+const configRoutes_1 = __importDefault(require("./configRoutes"));
+const users_1 = __importDefault(require("../service/users"));
+const auth_1 = __importDefault(require("../service/auth"));
+const admin_1 = __importDefault(require("../service/admin"));
+const workflow_1 = __importDefault(require("../service/workflow"));
+const doctor_1 = __importDefault(require("../service/doctor"));
+const authMiddleware_1 = require("../middleware/authMiddleware");
+const constants_1 = require("../common/constants");
+const router = (0, express_1.Router)();
+router.use("/health", healthRoutes_1.default);
+router.use("/config", configRoutes_1.default);
+router.use("/auth", auth_1.default);
+router.use("/users", authMiddleware_1.requireAuth, users_1.default);
+router.use("/workflow", authMiddleware_1.requireAuth, workflow_1.default);
+router.use("/admin", authMiddleware_1.requireAuth, (0, authMiddleware_1.requireRole)(constants_1.ROLES.ADMIN), admin_1.default);
+router.use("/doctor", authMiddleware_1.requireAuth, (0, authMiddleware_1.requireRole)(constants_1.ROLES.DOCTOR), doctor_1.default);
+exports.default = router;
