@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Full database dumps contain real patient PII and clinical data —
+# never belongs in git history.
+patient-management.sql
