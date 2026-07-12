@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "http";
 import { Server } from "socket.io";
 import { verifyToken } from "../common/jwt";
+import { isOriginAllowed } from "../common/allowedOrigins";
 import { ALL_WORKFLOW_QUEUES, type WorkflowQueue } from "./queues";
 
 const isWorkflowQueue = (room: unknown): room is WorkflowQueue =>
@@ -12,7 +13,7 @@ let io: Server | null = null;
 export const initSocket = (httpServer: HttpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: (origin, callback) => callback(null, isOriginAllowed(origin)),
       methods: ["GET", "POST"],
     },
   });
