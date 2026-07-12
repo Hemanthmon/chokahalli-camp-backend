@@ -8,6 +8,7 @@ import updateTest from "./actions/updateTest";
 import setTestStatus from "./actions/setTestStatus";
 import getOperationList from "./actions/getOperationList";
 import getSpectacleDistributionList from "./actions/getSpectacleDistributionList";
+import getSpectacleDistributionStats from "./actions/getSpectacleDistributionStats";
 import getVillageVolunteers from "./actions/getVillageVolunteers";
 import createVillageVolunteer from "./actions/createVillageVolunteer";
 import updateVillageVolunteer from "./actions/updateVillageVolunteer";
@@ -159,6 +160,22 @@ router.get("/operation-list", async (req, res) => {
 router.get("/spectacle-distribution", async (req, res) => {
   try {
     const response = await getSpectacleDistributionList();
+
+    return res.status(200).json({
+      success: true,
+      data: response,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+router.get("/spectacle-distribution-stats", async (req, res) => {
+  try {
+    const response = await getSpectacleDistributionStats();
 
     return res.status(200).json({
       success: true,

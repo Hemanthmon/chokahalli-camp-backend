@@ -14,10 +14,6 @@ export const pool = new Pool({
   },
 });
 
-pool.on("connect", async (client) => {
-  await client.query("SET search_path TO public");
-});
-
 pool
   .connect()
   .then(() => {
