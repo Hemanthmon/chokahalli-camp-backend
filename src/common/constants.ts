@@ -34,6 +34,17 @@ export const NOTIFICATION_TYPE = {
   SMS: "SMS",
 } as const;
 
+// What the client must do after a bare phone-number login check, before a
+// JWT is issued. NONE means the existing single-step flow already applies
+// (non-ADMIN roles today). Kept as its own step rather than folded into
+// ROLES, since a future ADMIN-strength rollout to other roles only needs
+// to start returning these same two values for them too.
+export const AUTH_STEP = {
+  NONE: "NONE",
+  PASSWORD_REQUIRED: "PASSWORD_REQUIRED",
+  PASSWORD_SETUP_REQUIRED: "PASSWORD_SETUP_REQUIRED",
+} as const;
+
 export const ROLES = {
   ADMIN: "ADMIN",
   RECEPTION: "RECEPTION",
