@@ -1,3 +1,4 @@
+import { SPECTACLE_STATUS } from "../../../common/constants";
 import { pool } from "../../../db";
 
 const getDoctorDashboardStats = async () => {
@@ -8,7 +9,7 @@ const getDoctorDashboardStats = async () => {
     ageGroupResult,
     locationResult,
     cataractResult,
-    spectacleResult,
+    spectacleStatusResult,
     spectacleTotalResult,
     operationTypeResult,
     operationStatusResult,
@@ -62,7 +63,12 @@ const getDoctorDashboardStats = async () => {
     ),
 
     pool.query(
-      `SELECT COUNT(*)::int AS count FROM spectacle_corrections WHERE spectacle_required = true`
+      `
+      SELECT spectacle_status, COUNT(*)::int AS count
+      FROM spectacle_corrections
+      WHERE spectacle_status IS NOT NULL
+      GROUP BY spectacle_status
+      `
     ),
 
     pool.query(`SELECT COUNT(*)::int AS count FROM spectacle_corrections`),
@@ -105,15 +111,33 @@ const getDoctorDashboardStats = async () => {
     operationStatusResult.rows.find((row) => row.operation_status === "Approved")
       ?.count ?? 0;
 
+  // Single source of truth for every spectacle-distribution number on the
+  // dashboard and in the PDF export — derived from the standardized
+  // spectacle_status vocabulary, never hardcoded or computed differently
+  // in more than one place.
+  const getSpectacleStatusCount = (status: string) =>
+    spectacleStatusResult.rows.find((row) => row.spectacle_status === status)
+      ?.count ?? 0;
+
+  const spectaclesRecommendedOnly = getSpectacleStatusCount(
+    SPECTACLE_STATUS.RECOMMENDED
+  );
+  const spectaclesReceivedOnly = getSpectacleStatusCount(SPECTACLE_STATUS.RECEIVED);
+  const spectaclesCollected = getSpectacleStatusCount(SPECTACLE_STATUS.COLLECTED);
+
+  const spectaclesTotalRecommendations =
+    spectaclesRecommendedOnly + spectaclesReceivedOnly + spectaclesCollected;
+  const spectaclesPending = spectaclesRecommendedOnly;
+  const spectaclesReceived = spectaclesReceivedOnly + spectaclesCollected;
+
   const spectacleTotal = spectacleTotalResult.rows[0]?.count ?? 0;
-  const spectaclesRequired = spectacleResult.rows[0]?.count ?? 0;
   const nerveTotal = nerveTotalResult.rows[0]?.count ?? 0;
   const nerveSelected = nerveSelectedResult.rows[0]?.count ?? 0;
 
   return {
     total_patients: totalPatientsResult.rows[0]?.count ?? 0,
     operations_selected: operationsSelected,
-    spectacles_recommended: spectaclesRequired,
+    spectacles_recommended: spectaclesTotalRecommendations,
     cataract_cases: cataractResult.rows[0]?.count ?? 0,
     average_age: ageResult.rows[0]?.average_age ?? null,
     gender: genderResult.rows,
@@ -126,8 +150,19 @@ const getDoctorDashboardStats = async () => {
       nerveTotal > 0 ? Math.round((nerveSelected / nerveTotal) * 100) : 0,
     spectacle_recommendation_rate:
       spectacleTotal > 0
-        ? Math.round((spectaclesRequired / spectacleTotal) * 100)
+        ? Math.round((spectaclesTotalRecommendations / spectacleTotal) * 100)
         : 0,
+    spectacle_distribution: {
+      pending: spectaclesPending,
+      received: spectaclesReceived,
+      collected: spectaclesCollected,
+      received_rate:
+        spectaclesTotalRecommendations > 0
+          ? Math.round(
+              (spectaclesReceived / spectaclesTotalRecommendations) * 100
+            )
+          : 0,
+    },
   };
 };
 
