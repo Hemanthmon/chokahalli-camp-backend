@@ -5,6 +5,7 @@ import getSpectaclePatients from "./actions/getSpectalesPatients";
 import getCompletedSpectaclePatients from "./actions/getCompletedSpectaclePatients";
 import getSpectaclePatientById from "./actions/getSpectaclePatientById";
 import saveSpectacleCorrection from "./actions/saveSpectacleCorrection";
+import recordSpectacleNotification from "./actions/recordSpectacleNotification";
 import getSlitLampPatients from "./actions/getSlitLampPatients";
 import getCompletedSlitLampPatients from "./actions/getCompletedSlitLampPatients";
 import getSlitLampPatientById from "./actions/getSlitLampPatientById";
@@ -245,6 +246,28 @@ router.post("/spectacle-correction", async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Spectacle Correction Saved Successfully",
+            data: response,
+        });
+
+    } catch (error: any) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+
+    }
+});
+
+
+router.post("/spectacle-correction/notify", async (req, res) => {
+    try {
+
+        const response = await recordSpectacleNotification(req.body);
+
+        return res.status(200).json({
+            success: true,
+            message: "Notification Recorded",
             data: response,
         });
 

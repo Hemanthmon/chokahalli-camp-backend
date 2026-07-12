@@ -15,6 +15,25 @@ export const CHECKUP_STATUS = {
   SKIPPED: "SKIPPED",
 } as const;
 
+// Canonical spectacle_status vocabulary, used by every flow that reads or
+// writes spectacle_corrections: the volunteer intake form, the admin
+// distribution action, the doctor panel, and the public status portal.
+export const SPECTACLE_STATUS = {
+  NOT_REQUIRED: "NOT_REQUIRED",
+  RECOMMENDED: "RECOMMENDED",
+  RECEIVED: "RECEIVED",
+  COLLECTED: "COLLECTED",
+} as const;
+
+// Channel used for the last spectacle-distribution notification attempt —
+// deep links only (WhatsApp/SMS apps opened with a prefilled message), no
+// gateway or Business API, so this is only ever set when a volunteer taps
+// "initiate" and never implies the message was actually sent.
+export const NOTIFICATION_TYPE = {
+  WHATSAPP: "WHATSAPP",
+  SMS: "SMS",
+} as const;
+
 export const ROLES = {
   ADMIN: "ADMIN",
   RECEPTION: "RECEPTION",

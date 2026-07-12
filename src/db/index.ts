@@ -9,6 +9,13 @@ export const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+pool.on("connect", async (client) => {
+  await client.query("SET search_path TO public");
 });
 
 pool
@@ -16,7 +23,4 @@ pool
   .then(() => {
     console.log("✅ PostgreSQL Connected");
   })
-  .catch((err: any) => {
-    console.error("❌ Database Connection Failed");
-    console.error(err);
-  });
+  .catch(console.error);

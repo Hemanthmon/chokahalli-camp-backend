@@ -7,6 +7,7 @@ import authRoutes from "../service/auth";
 import adminRoutes from "../service/admin";
 import workflowRoutes from "../service/workflow";
 import doctorRoutes from "../service/doctor";
+import publicRoutes from "../service/public";
 import { requireAuth, requireRole } from "../middleware/authMiddleware";
 import { ROLES } from "../common/constants";
 
@@ -15,6 +16,7 @@ const router = Router();
 router.use("/health", healthRoutes);
 router.use("/config", configRoutes);
 router.use("/auth", authRoutes);
+router.use("/public", publicRoutes);
 router.use("/users", requireAuth, userRoutes);
 router.use("/workflow", requireAuth, workflowRoutes);
 router.use("/admin", requireAuth, requireRole(ROLES.ADMIN), adminRoutes);

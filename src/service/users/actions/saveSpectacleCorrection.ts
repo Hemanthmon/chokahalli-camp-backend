@@ -1,4 +1,4 @@
-import { CHECKUP_STATUS, CHECKUPS } from "../../../common/constants";
+import { CHECKUP_STATUS, CHECKUPS, SPECTACLE_STATUS } from "../../../common/constants";
 import { createPatientCheckup } from "../../../common/patientCheckUp";
 import { findPatientCheckup } from "../../../common/findPatientCheckup";
 import { pool } from "../../../db";
@@ -12,6 +12,11 @@ interface SaveSpectacleCorrectionPayload {
   spectacle_required?: boolean;
   spectacle_status?: string;
   remarks?: string;
+  // Whether completing this stage should enqueue the patient into the next
+  // clinical stage (Slit Lamp). Live clinical exams should leave this true;
+  // administrative saves that record status without an in-person exam
+  // (e.g. reconstructing historical records) should pass false.
+  progress_to_next_stage?: boolean;
 }
 
 const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) => {
@@ -22,11 +27,29 @@ const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) 
     spectacle_required,
     spectacle_status,
     remarks,
+    progress_to_next_stage = true,
   } = payload;
 
   if (!patient_id) {
     throw new Error("Patient is required");
   }
+
+  if (
+    spectacle_status !== undefined &&
+    !Object.values(SPECTACLE_STATUS).includes(spectacle_status as any)
+  ) {
+    throw new Error("Invalid spectacle status");
+  }
+
+  // spectacle_required is derived from spectacle_status, not accepted
+  // independently, so the two columns can never drift apart: NOT_REQUIRED
+  // means false, every other canonical status means true. When a caller
+  // doesn't touch spectacle_status at all, fall back to whatever it passed
+  // (or leave the existing value untouched on update — see COALESCE below).
+  const resolvedRequired =
+    spectacle_status !== undefined
+      ? spectacle_status !== SPECTACLE_STATUS.NOT_REQUIRED
+      : spectacle_required;
 
   const client = await pool.connect();
 
@@ -78,7 +101,7 @@ const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) 
             patientCheckupId,
             left_eye,
             right_eye,
-            spectacle_required ?? false,
+            resolvedRequired ?? false,
             spectacle_status,
             remarks,
           ]
@@ -87,11 +110,11 @@ const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) 
           `
           UPDATE spectacle_corrections
           SET
-              left_eye = $1,
-              right_eye = $2,
-              spectacle_required = $3,
-              spectacle_status = $4,
-              remarks = $5,
+              left_eye = COALESCE($1, left_eye),
+              right_eye = COALESCE($2, right_eye),
+              spectacle_required = COALESCE($3, spectacle_required),
+              spectacle_status = COALESCE($4, spectacle_status),
+              remarks = COALESCE($5, remarks),
               updated_at = now()
           WHERE patient_checkup_id = $6
           RETURNING *
@@ -99,7 +122,7 @@ const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) 
           [
             left_eye,
             right_eye,
-            spectacle_required ?? false,
+            resolvedRequired,
             spectacle_status,
             remarks,
             patientCheckupId,
@@ -116,14 +139,16 @@ const saveSpectacleCorrection = async (payload: SaveSpectacleCorrectionPayload) 
         [CHECKUP_STATUS.COMPLETED, patientCheckupId]
       );
 
-      await createPatientCheckup(
-        {
-          patientId: patient_id,
-          checkupId: CHECKUPS.SLIT_LAMP_CHECKUP,
-          status: CHECKUP_STATUS.WAITING,
-        },
-        client
-      );
+      if (progress_to_next_stage) {
+        await createPatientCheckup(
+          {
+            patientId: patient_id,
+            checkupId: CHECKUPS.SLIT_LAMP_CHECKUP,
+            status: CHECKUP_STATUS.WAITING,
+          },
+          client
+        );
+      }
     }
 
     await client.query("COMMIT");
